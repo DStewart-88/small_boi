@@ -72,6 +72,10 @@ dependencies {
 
     testImplementation 'org.junit.jupiter:junit-jupiter:5.10.1'
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
+
+    // AdvantageKit autolog annotation processor (version pulled from vendordep JSON)
+    def akitJson = new groovy.json.JsonSlurper().parseText(new File(projectDir.getAbsolutePath() + "/vendordeps/AdvantageKit.json").text)
+    annotationProcessor "org.littletonrobotics.akit:akit-autolog:${akitJson.version}"
 }
 
 test {
@@ -101,4 +105,12 @@ wpi.java.configureTestTasks(test)
 // Configure string concat to always inline compile
 tasks.withType(JavaCompile) {
     options.compilerArgs.add '-XDstringConcat=inline'
+}
+
+// AdvantageKit Replay Watch helper task
+tasks.register('replayWatch', JavaExec) {
+    group = 'AdvantageKit'
+    description = 'Watches for replay logs and launches AdvantageScope replay when available.'
+    mainClass = 'org.littletonrobotics.junction.ReplayWatch'
+    classpath = sourceSets.main.runtimeClasspath
 }

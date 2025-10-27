@@ -9,11 +9,16 @@ import edu.wpi.first.networktables.GenericEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.RobotController;
-import edu.wpi.first.wpilibj.TimedRobot;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import org.littletonrobotics.junction.Logger;
+import org.littletonrobotics.junction.LogFileUtil;
+import org.littletonrobotics.junction.LoggedRobot;
+import org.littletonrobotics.junction.networktables.NT4Publisher;
+import org.littletonrobotics.junction.wpilog.WPILOGReader;
+import org.littletonrobotics.junction.wpilog.WPILOGWriter;
 
 /**
  * Minimal production-shaped TimedRobot skeleton.
@@ -25,7 +30,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
  * - Dashboard outputs every loop to SmartDashboard (Robot/* keys) and a Shuffleboard "Robot" tab.
  * - NetworkTables is flushed once in robotInit() after widget setup so the tab appears quickly.
  */
-public class Robot extends TimedRobot {
+public class Robot extends LoggedRobot {
   // --- Heartbeat/state ---
   private String m_currentMode = "Disabled"; // Updated in each *Init()
   private double m_lastHeartbeatTs = 0.0; // Seconds (FPGATimestamp)
@@ -41,6 +46,24 @@ public class Robot extends TimedRobot {
   private GenericEntry m_fmsEntry;
   private GenericEntry m_voltsEntry;
   private GenericEntry m_userButtonEntry;
+
+  public Robot() {
+    // AdvantageKit logger setup
+    Logger.recordMetadata("ProjectName", "RIO2-Testbed");
+
+    if (isReal()) {
+      // Log to USB drive at /U/logs
+      Logger.addDataReceiver(new WPILOGWriter());
+      Logger.addDataReceiver(new NT4Publisher());
+    } else {
+      setUseTiming(false); // Fast replay in sim
+      String logPath = LogFileUtil.findReplayLog();
+      Logger.setReplaySource(new WPILOGReader(logPath));
+      Logger.addDataReceiver(new WPILOGWriter(LogFileUtil.addPathSuffix(logPath, "_sim")));
+    }
+
+    Logger.start();
+  }
 
   /** Called when the robot first starts. Sets up dashboard widgets and flushes NT once. */
   @Override

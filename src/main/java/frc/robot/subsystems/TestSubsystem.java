@@ -7,6 +7,7 @@ import edu.wpi.first.networktables.GenericEntry;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import org.littletonrobotics.junction.AutoLogOutput;
 
 /**
  * TestSubsystem: reads a single CTRE CANcoder and publishes absolute position and velocity
@@ -19,6 +20,7 @@ import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 public class TestSubsystem {
   // --- Hardware ---
   private final CANcoder cancoder = new CANcoder(3);
+  private StatusCode lastCanStatus = null;
 
   // --- Shuffleboard entries on the "Test" tab ---
   private final GenericEntry absEntry;
@@ -48,6 +50,7 @@ public class TestSubsystem {
     var vel = cancoder.getVelocity();
     // Capture CAN refresh status to report health/connectivity.
     StatusCode canStatus = BaseStatusSignal.refreshAll(pos, vel);
+    lastCanStatus = canStatus;
 
     // Read values (rotations and rotations/sec) as doubles.
     double absRot = pos.getValueAsDouble();
@@ -65,5 +68,26 @@ public class TestSubsystem {
     // SmartDashboard CAN status (string and boolean OK flag)
     SmartDashboard.putString("Test/CANStatus", canStatus.toString());
     SmartDashboard.putBoolean("Test/CANOK", canStatus == StatusCode.OK);
+  }
+
+  // AdvantageKit autolog outputs (recorded every cycle)
+  @AutoLogOutput(key = "Test/CANcoderAbsPos")
+  public double getAbsPos() {
+    return cancoder.getPosition().getValueAsDouble();
+  }
+
+  @AutoLogOutput(key = "Test/CANcoderVelRPS")
+  public double getVel() {
+    return cancoder.getVelocity().getValueAsDouble();
+  }
+
+  @AutoLogOutput(key = "Test/CANStatus")
+  public String getCANStatus() {
+    return lastCanStatus != null ? lastCanStatus.toString() : "Unknown";
+  }
+
+  @AutoLogOutput(key = "Test/CANOK")
+  public boolean isCANOK() {
+    return lastCanStatus == StatusCode.OK;
   }
 }

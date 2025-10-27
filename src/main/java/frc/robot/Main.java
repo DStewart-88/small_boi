@@ -20,6 +20,7 @@ public final class Main {
    * <p>If you change your main robot class, change the parameter type.
    */
   public static void main(String... args) {
-    RobotBase.startRobot(Robot::new);
+    // Explicit type witness to satisfy some IDE/JDK inference hiccups
+    RobotBase.<Robot>startRobot(Robot::new);
   }
 }
