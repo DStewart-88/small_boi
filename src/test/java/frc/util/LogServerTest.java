@@ -23,8 +23,8 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-public class LogHttpServerTest {
-  private LogHttpServer server;
+public class LogServerTest {
+  private LogServer server;
   private Thread serverThread;
   private int port;
   private Path tempDir;
@@ -36,8 +36,8 @@ public class LogHttpServerTest {
 
     tempDir = Files.createTempDirectory("log-server-test");
     port = findFreePort();
-    server = new LogHttpServer(port, tempDir);
-    serverThread = new Thread(server, "LogHttpServerTest-main");
+    server = new LogServer(port, tempDir);
+    serverThread = new Thread(server, "LogServerTest-main");
     serverThread.setDaemon(true);
     serverThread.start();
     // Small sleep to allow bind
@@ -193,4 +193,3 @@ public class LogHttpServerTest {
     byte[] body;
   }
 }
-

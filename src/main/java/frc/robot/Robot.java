@@ -5,7 +5,7 @@
 package frc.robot;
 
 import frc.robot.subsystems.TestSubsystem;
-import frc.util.LogHttpServer;
+import frc.util.LogServer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -45,7 +45,7 @@ public class Robot extends LoggedRobot {
   
   // --- Disabled-only HTTP log server ---
   private static final int LOG_SERVER_PORT = 5800;
-  private LogHttpServer m_logServer;
+  private LogServer m_logServer;
   private Thread m_logServerThread;
 
   // --- Shuffleboard entries on the "Robot" tab ---
@@ -224,14 +224,14 @@ public class Robot extends LoggedRobot {
       return;
     }
     Path logDir = selectLogDirForServer();
-    m_logServer = new LogHttpServer(LOG_SERVER_PORT, logDir);
-    m_logServerThread = new Thread(m_logServer, "LogHttpServer-main");
+    m_logServer = new LogServer(LOG_SERVER_PORT, logDir);
+    m_logServerThread = new Thread(m_logServer, "LogServer-main");
     m_logServerThread.setDaemon(true);
     m_logServerThread.start();
   }
 
   private void stopLogServer() {
-    LogHttpServer srv = m_logServer;
+    LogServer srv = m_logServer;
     Thread t = m_logServerThread;
     m_logServer = null;
     m_logServerThread = null;

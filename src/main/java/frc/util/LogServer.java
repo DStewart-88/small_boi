@@ -35,7 +35,7 @@ import java.util.Set;
  *
  * Server only runs while Disabled; Robot must start/stop per mode transitions.
  */
-public final class LogHttpServer implements Runnable {
+public final class LogServer implements Runnable {
   private final int port;
   private final Path logDir;
   private volatile boolean running = false;
@@ -45,7 +45,7 @@ public final class LogHttpServer implements Runnable {
   // Safe filename pattern: letters, digits, dot, underscore, hyphen only.
   private static final String SAFE_NAME_REGEX = "^[A-Za-z0-9._-]+$";
 
-  public LogHttpServer(int port, Path logDir) {
+  public LogServer(int port, Path logDir) {
     this.port = port;
     this.logDir = logDir;
     this.allowedExt = new HashSet<>();
@@ -59,28 +59,28 @@ public final class LogHttpServer implements Runnable {
     try (ServerSocket ss = new ServerSocket(port)) {
       this.serverSocket = ss;
       ss.setReuseAddress(true);
-      System.out.printf("[LogHttpServer] Listening on %d (dir=%s)%n", port, logDir.toString());
+      System.out.printf("[LogServer] Listening on %d (dir=%s)%n", port, logDir.toString());
       while (running) {
         try {
           Socket client = ss.accept();
           client.setSoTimeout(3000);
           // Tiny per-connection thread. Keep handler minimal.
-          Thread t = new Thread(() -> handle(client), "LogHttpServer-conn");
+          Thread t = new Thread(() -> handle(client), "LogServer-conn");
           t.setDaemon(true);
           t.start();
         } catch (IOException acceptEx) {
           if (running) {
             // Unexpected; keep trying.
-            System.out.printf("[LogHttpServer] accept() error: %s%n", acceptEx.getMessage());
+            System.out.printf("[LogServer] accept() error: %s%n", acceptEx.getMessage());
           }
         }
       }
     } catch (IOException bindEx) {
-      System.out.printf("[LogHttpServer] Failed to bind port %d: %s%n", port, bindEx.getMessage());
+      System.out.printf("[LogServer] Failed to bind port %d: %s%n", port, bindEx.getMessage());
     } finally {
       serverSocket = null;
       running = false;
-      System.out.println("[LogHttpServer] Stopped");
+      System.out.println("[LogServer] Stopped");
     }
   }
 
@@ -307,4 +307,3 @@ public final class LogHttpServer implements Runnable {
     out.flush();
   }
 }
-
