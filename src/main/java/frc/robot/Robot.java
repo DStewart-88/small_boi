@@ -5,6 +5,7 @@
 package frc.robot;
 
 import frc.robot.subsystems.TestSubsystem;
+import frc.util.LogHttpServer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -41,6 +42,11 @@ public class Robot extends LoggedRobot {
 
   // --- Subsystems ---
   private final TestSubsystem testSubsystem = new TestSubsystem();
+  
+  // --- Disabled-only HTTP log server ---
+  private static final int LOG_SERVER_PORT = 5800;
+  private LogHttpServer m_logServer;
+  private Thread m_logServerThread;
 
   // --- Shuffleboard entries on the "Robot" tab ---
   private GenericEntry m_modeEntry;
@@ -157,24 +163,28 @@ public class Robot extends LoggedRobot {
   public void disabledInit() {
     m_currentMode = "Disabled";
     System.out.println(">>> Mode changed to: " + m_currentMode);
+    startLogServerIfNeeded();
   }
 
   @Override
   public void autonomousInit() {
     m_currentMode = "Autonomous";
     System.out.println(">>> Mode changed to: " + m_currentMode);
+    stopLogServer();
   }
 
   @Override
   public void teleopInit() {
     m_currentMode = "Teleop";
     System.out.println(">>> Mode changed to: " + m_currentMode);
+    stopLogServer();
   }
 
   @Override
   public void testInit() {
     m_currentMode = "Test";
     System.out.println(">>> Mode changed to: " + m_currentMode);
+    stopLogServer();
   }
 
   // Periodic stubs for each mode (kept minimal; shared work is in robotPeriodic()).
@@ -196,4 +206,44 @@ public class Robot extends LoggedRobot {
 
   @Override
   public void simulationPeriodic() {}
+
+  // --- Log HTTP server helpers ---
+  private Path selectLogDirForServer() {
+    // Prefer USB if present; otherwise internal storage.
+    try {
+      Path usb = Paths.get("/U/logs");
+      if (Files.isDirectory(usb)) {
+        return usb;
+      }
+    } catch (Exception ignored) {}
+    return Paths.get("/home/lvuser/logs");
+  }
+
+  private void startLogServerIfNeeded() {
+    if (m_logServerThread != null && m_logServerThread.isAlive()) {
+      return;
+    }
+    Path logDir = selectLogDirForServer();
+    m_logServer = new LogHttpServer(LOG_SERVER_PORT, logDir);
+    m_logServerThread = new Thread(m_logServer, "LogHttpServer-main");
+    m_logServerThread.setDaemon(true);
+    m_logServerThread.start();
+  }
+
+  private void stopLogServer() {
+    LogHttpServer srv = m_logServer;
+    Thread t = m_logServerThread;
+    m_logServer = null;
+    m_logServerThread = null;
+    if (srv != null) {
+      try {
+        srv.stop();
+      } catch (Exception ignored) {}
+    }
+    if (t != null) {
+      try {
+        t.join(200);
+      } catch (InterruptedException ignored) {}
+    }
+  }
 }
