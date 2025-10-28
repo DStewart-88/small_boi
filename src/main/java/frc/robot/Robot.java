@@ -5,6 +5,9 @@
 package frc.robot;
 
 import frc.robot.subsystems.TestSubsystem;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import edu.wpi.first.networktables.GenericEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -52,8 +55,33 @@ public class Robot extends LoggedRobot {
     Logger.recordMetadata("ProjectName", "RIO2-Testbed");
 
     if (isReal()) {
-      // Log to USB drive at /U/logs
-      Logger.addDataReceiver(new WPILOGWriter());
+      // Force logging to USB at /U/logs with internal fallback.
+      String usbLogPath = "/U/logs";
+      String internalLogPath = "/home/lvuser/logs";
+      boolean usingUsb = false;
+
+      try {
+        Path usbPath = Paths.get(usbLogPath);
+        Files.createDirectories(usbPath);
+        if (Files.isDirectory(usbPath) && Files.isWritable(usbPath)) {
+          Logger.addDataReceiver(new WPILOGWriter(usbLogPath));
+          Logger.recordMetadata("LogStorage", usbLogPath);
+          usingUsb = true;
+        }
+      } catch (Exception e) {
+        // Will fall back to internal storage below.
+      }
+
+      if (!usingUsb) {
+        try {
+          Path internalPath = Paths.get(internalLogPath);
+          Files.createDirectories(internalPath);
+        } catch (Exception ignored) {
+        }
+        Logger.addDataReceiver(new WPILOGWriter(internalLogPath));
+        Logger.recordMetadata("LogStorage", internalLogPath);
+      }
+
       Logger.addDataReceiver(new NT4Publisher());
     } else {
       setUseTiming(false); // Fast replay in sim
