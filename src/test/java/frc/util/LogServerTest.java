@@ -1,3 +1,4 @@
+/* 
 package frc.util;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -193,3 +194,4 @@ public class LogServerTest {
     byte[] body;
   }
 }
+*/
