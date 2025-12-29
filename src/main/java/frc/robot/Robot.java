@@ -4,7 +4,7 @@
 
 package frc.robot;
 
-import frc.robot.subsystems.TestSubsystem;
+import frc.robot.subsystems.Tray;
 import frc.util.LogServer;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -41,7 +41,7 @@ public class Robot extends LoggedRobot {
   private int m_heartbeatCount = 0; // Increments once per second
 
   // --- Subsystems ---
-  private final TestSubsystem testSubsystem = new TestSubsystem();
+  private final Tray tray = new Tray();
   
   // --- Disabled-only HTTP log server ---
   private static final int LOG_SERVER_PORT = 5800;
@@ -154,8 +154,8 @@ public class Robot extends LoggedRobot {
     if (m_voltsEntry != null) m_voltsEntry.setDouble(batteryVolts);
     if (m_userButtonEntry != null) m_userButtonEntry.setBoolean(userButton);
 
-    // Update the TestSubsystem (CANcoder readout) alongside the heartbeat.
-    testSubsystem.periodic();
+    // Update the Tray subsystem (motor + CANcoder telemetry) alongside the heartbeat.
+    tray.periodic();
   }
 
   // --- Mode transitions: log and update current mode label ---
