@@ -4,11 +4,6 @@
 
 package frc.robot;
 
-import frc.robot.subsystems.Tray;
-import frc.util.LogServer;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
 import edu.wpi.first.networktables.GenericEntry;
 import edu.wpi.first.networktables.NetworkTableInstance;
 import edu.wpi.first.wpilibj.DriverStation;
@@ -17,6 +12,11 @@ import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import frc.util.LogServer;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.LogFileUtil;
 import org.littletonrobotics.junction.LoggedRobot;
@@ -41,7 +41,7 @@ public class Robot extends LoggedRobot {
   private int m_heartbeatCount = 0; // Increments once per second
 
   // --- Subsystems ---
-  private final Tray tray = new Tray();
+  private RobotContainer robotContainer;
   
   // --- Disabled-only HTTP log server ---
   private static final int LOG_SERVER_PORT = 5800;
@@ -102,6 +102,8 @@ public class Robot extends LoggedRobot {
   /** Called when the robot first starts. Sets up dashboard widgets and flushes NT once. */
   @Override
   public void robotInit() {
+    robotContainer = new RobotContainer();
+
     // Initialize Shuffleboard widgets on a dedicated "Robot" tab.
     ShuffleboardTab tab = Shuffleboard.getTab("Robot");
     m_modeEntry = tab.add("Mode", m_currentMode).getEntry();
@@ -121,6 +123,8 @@ public class Robot extends LoggedRobot {
    */
   @Override
   public void robotPeriodic() {
+    CommandScheduler.getInstance().run();
+
     // Gather current status.
     boolean dsAttached = DriverStation.isDSAttached();
     boolean fmsAttached = DriverStation.isFMSAttached();
@@ -153,9 +157,6 @@ public class Robot extends LoggedRobot {
     if (m_fmsEntry != null) m_fmsEntry.setBoolean(fmsAttached);
     if (m_voltsEntry != null) m_voltsEntry.setDouble(batteryVolts);
     if (m_userButtonEntry != null) m_userButtonEntry.setBoolean(userButton);
-
-    // Update the Tray subsystem (motor + CANcoder telemetry) alongside the heartbeat.
-    tray.periodic();
   }
 
   // --- Mode transitions: log and update current mode label ---
