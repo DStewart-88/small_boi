@@ -1,8 +1,10 @@
 package frc.robot.health;
 
+import edu.wpi.first.networktables.BooleanEntry;
 import edu.wpi.first.networktables.BooleanPublisher;
-import edu.wpi.first.networktables.StringPublisher;
+import edu.wpi.first.networktables.DoublePublisher;
 import edu.wpi.first.networktables.NetworkTableInstance;
+import edu.wpi.first.networktables.StringPublisher;
 import edu.wpi.first.wpilibj.DriverStation;
 import edu.wpi.first.wpilibj.Timer;
 import java.util.ArrayList;
@@ -22,6 +24,7 @@ import org.littletonrobotics.junction.Logger;
  */
 public final class CANHealthMonitor {
   private static final String NT_BASE_PATH = "/CANHealth/";
+  private static final String RESET_KEY = "CANHealth/ResetStickyFaults";
   private static final double SUMMARY_PERIOD_SEC = 0.5;
   private static final CANHealthMonitor INSTANCE = new CANHealthMonitor();
 
@@ -33,9 +36,14 @@ public final class CANHealthMonitor {
   private BooleanPublisher allConnectedPub;
   private StringPublisher currentFaultsPub;
   private StringPublisher stickyFaultsPub;
+  private DoublePublisher resetCountPub;
+  private DoublePublisher resetTimePub;
+  private BooleanEntry resetEntry;
 
   private boolean stickyDirty = false;
   private double lastSummaryPublishSec = 0.0;
+  private boolean lastResetRequest = false;
+  private int stickyResetCount = 0;
 
   private CANHealthMonitor() {}
 
@@ -80,6 +88,8 @@ public final class CANHealthMonitor {
   /** Publishes summary statuses on a throttled cadence and when sticky faults grow. */
   public void periodic() {
     double now = Timer.getFPGATimestamp();
+
+    processResetRequest(now);
 
     if (stickyDirty) {
       publishStickyFaults();
@@ -143,6 +153,21 @@ public final class CANHealthMonitor {
     return String.join("; ", everDisconnected);
   }
 
+  /** @return true if any known device is currently disconnected. */
+  public boolean hasAnyCurrentFault() {
+    return !allConnectedNow();
+  }
+
+  /** @return true if any device has ever been seen disconnected since boot. */
+  public boolean hasAnyStickyFault() {
+    return !everDisconnected.isEmpty();
+  }
+
+  /** @return true if all known devices are currently connected (or none reported yet). */
+  public boolean isAllConnectedNow() {
+    return allConnectedNow();
+  }
+
   private BooleanPublisher ensureAllConnectedPublisher() {
     if (allConnectedPub == null) {
       allConnectedPub =
@@ -171,5 +196,58 @@ public final class CANHealthMonitor {
               .publish();
     }
     return stickyFaultsPub;
+  }
+
+  private DoublePublisher ensureResetCountPublisher() {
+    if (resetCountPub == null) {
+      resetCountPub =
+          NetworkTableInstance.getDefault()
+              .getDoubleTopic(NT_BASE_PATH + "StickyFaultsResetCount")
+              .publish();
+    }
+    return resetCountPub;
+  }
+
+  private DoublePublisher ensureResetTimePublisher() {
+    if (resetTimePub == null) {
+      resetTimePub =
+          NetworkTableInstance.getDefault()
+              .getDoubleTopic(NT_BASE_PATH + "StickyFaultsLastResetTimeSec")
+              .publish();
+    }
+    return resetTimePub;
+  }
+
+  private BooleanEntry ensureResetEntry() {
+    if (resetEntry == null) {
+      resetEntry =
+          NetworkTableInstance.getDefault()
+              .getBooleanTopic(RESET_KEY)
+              .getEntry(false);
+      resetEntry.set(false);
+      lastResetRequest = false;
+    }
+    return resetEntry;
+  }
+
+  private void processResetRequest(double now) {
+    boolean resetRequest = ensureResetEntry().get(false);
+    boolean risingEdge = resetRequest && !lastResetRequest;
+
+    if (risingEdge) {
+      if (DriverStation.isDisabled()) {
+        everDisconnected.clear();
+        stickyDirty = true;
+        stickyResetCount++;
+        ensureResetCountPublisher().set(stickyResetCount);
+        Logger.recordOutput("CANHealth/StickyFaultsResetCount", stickyResetCount);
+        ensureResetTimePublisher().set(now);
+      }
+      // Acknowledge by resetting the NT flag regardless of enabled state.
+      ensureResetEntry().set(false);
+      lastResetRequest = false;
+    } else {
+      lastResetRequest = resetRequest;
+    }
   }
 }
