@@ -14,6 +14,7 @@ import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.TrayConstants;
+import frc.robot.health.CANHealthMonitor;
 import org.littletonrobotics.junction.AutoLogOutput;
 import org.littletonrobotics.junction.Logger;
 
@@ -120,6 +121,12 @@ public class Tray extends SubsystemBase {
     double supplyCurrentAmps = supplyCurrent.getValueAsDouble();
     double supplyVoltageVolts = supplyVoltage.getValueAsDouble();
     double powerWatts = supplyCurrentAmps * supplyVoltageVolts;
+
+    // Publish CAN health for the tray motor and CANcoder.
+    CANHealthMonitor.getInstance()
+        .updateStatus("Tray/Motor", rotorPos.getStatus().isOK());
+    CANHealthMonitor.getInstance()
+        .updateStatus("Tray/CANcoder", absPos.getStatus().isOK());
 
     // SmartDashboard paths
     SmartDashboard.putNumber("Tray/MotorRotations", rotorRotations);

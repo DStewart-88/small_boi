@@ -13,6 +13,7 @@ import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
 import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import frc.robot.health.CANHealthMonitor;
 import frc.util.LogServer;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -103,6 +104,7 @@ public class Robot extends LoggedRobot {
   @Override
   public void robotInit() {
     robotContainer = new RobotContainer();
+    CANHealthMonitor.getInstance().setupShuffleboard();
 
     // Initialize Shuffleboard widgets on a dedicated "Robot" tab.
     ShuffleboardTab tab = Shuffleboard.getTab("Robot");
