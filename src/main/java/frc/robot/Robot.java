@@ -11,6 +11,7 @@ import edu.wpi.first.wpilibj.RobotController;
 import edu.wpi.first.wpilibj.Timer;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import frc.robot.health.CANHealthMonitor;
 import frc.util.LogServer;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -130,6 +131,8 @@ public class Robot extends LoggedRobot {
     SmartDashboard.putBoolean("Robot/FMSAttached", fmsAttached);
     SmartDashboard.putNumber("Robot/BatteryVolts", batteryVolts);
     SmartDashboard.putBoolean("Robot/UserButton", userButton);
+
+    CANHealthMonitor.getInstance().periodic();
   }
 
   // --- Mode transitions: log and update current mode label ---
