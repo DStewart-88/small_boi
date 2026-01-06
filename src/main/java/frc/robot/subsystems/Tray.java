@@ -8,9 +8,6 @@ import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
-import edu.wpi.first.networktables.GenericEntry;
-import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
-import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.TrayConstants;
@@ -36,16 +33,6 @@ public class Tray extends SubsystemBase {
   private StatusCode lastCanStatus = StatusCode.OK;
   private double lastCommandedTargetRotations = 0.0;
 
-  // --- Shuffleboard entries on the "Tray" tab ---
-  private final GenericEntry absEntry;
-  private final GenericEntry velEntry;
-  private final GenericEntry motorRotEntry;
-  private final GenericEntry targetEntry;
-  private final GenericEntry currentEntry;
-  private final GenericEntry voltageEntry;
-  private final GenericEntry powerEntry;
-  private final GenericEntry canStatusEntry;
-
   public Tray() {
     System.out.println("Tray subsystem initialized.");
     configureMotor();
@@ -60,17 +47,6 @@ public class Tray extends SubsystemBase {
         trayCancoder.getAbsolutePosition());
     trayMotor.optimizeBusUtilization();
     trayCancoder.optimizeBusUtilization();
-
-    // Create Shuffleboard tab and entries for live display.
-    ShuffleboardTab tab = Shuffleboard.getTab("Tray");
-    motorRotEntry = tab.add("MotorRotations", 0.0).getEntry();
-    velEntry = tab.add("MotorRPS", 0.0).getEntry();
-    absEntry = tab.add("CANcoderDegrees", 0.0).getEntry();
-    targetEntry = tab.add("TargetRotations", 0.0).getEntry();
-    currentEntry = tab.add("SupplyCurrentA", 0.0).getEntry();
-    voltageEntry = tab.add("SupplyVoltageV", 0.0).getEntry();
-    powerEntry = tab.add("PowerW", 0.0).getEntry();
-    canStatusEntry = tab.add("CANStatus", "Unknown").getEntry();
   }
 
   private void configureMotor() {
@@ -96,7 +72,7 @@ public class Tray extends SubsystemBase {
   }
 
   /**
-   * Refreshes motor/CANcoder signals and publishes values to Shuffleboard and SmartDashboard.
+   * Refreshes motor/CANcoder signals and publishes values to SmartDashboard.
    * Called by the command scheduler automatically.
    */
   @Override
@@ -138,16 +114,6 @@ public class Tray extends SubsystemBase {
     SmartDashboard.putNumber("Tray/PowerWatts", powerWatts);
     SmartDashboard.putString("Tray/CANStatus", lastCanStatus.toString());
     SmartDashboard.putBoolean("Tray/CANOK", lastCanStatus == StatusCode.OK);
-
-    // Shuffleboard entries
-    motorRotEntry.setDouble(rotorRotations);
-    velEntry.setDouble(rotorVelRps);
-    absEntry.setDouble(absDegrees);
-    targetEntry.setDouble(lastCommandedTargetRotations);
-    currentEntry.setDouble(supplyCurrentAmps);
-    voltageEntry.setDouble(supplyVoltageVolts);
-    powerEntry.setDouble(powerWatts);
-    canStatusEntry.setString(lastCanStatus.toString());
 
     // AdvantageKit outputs (recorded every cycle)
     Logger.recordOutput("Tray/MotorRotations", rotorRotations);
