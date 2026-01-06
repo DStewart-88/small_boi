@@ -1,0 +1,3 @@
+{
+  "note": "Replace this file with your exported Elastic CAN Status layout. Widgets should bind to /CANHealth/<DeviceKey> boolean topics."
+}

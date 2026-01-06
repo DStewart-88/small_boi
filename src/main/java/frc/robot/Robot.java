@@ -4,22 +4,21 @@
 
 package frc.robot;
 
-import frc.robot.subsystems.TestSubsystem;
+import edu.wpi.first.net.WebServer;
+import edu.wpi.first.wpilibj.DriverStation;
+import edu.wpi.first.wpilibj.Filesystem;
+import edu.wpi.first.wpilibj.RobotController;
+import edu.wpi.first.wpilibj.Timer;
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
+import edu.wpi.first.wpilibj2.command.CommandScheduler;
+import frc.robot.health.CANHealthMonitor;
 import frc.util.LogServer;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import edu.wpi.first.networktables.GenericEntry;
-import edu.wpi.first.networktables.NetworkTableInstance;
-import edu.wpi.first.wpilibj.DriverStation;
-import edu.wpi.first.wpilibj.RobotController;
-import edu.wpi.first.wpilibj.Timer;
-import edu.wpi.first.wpilibj.shuffleboard.Shuffleboard;
-import edu.wpi.first.wpilibj.shuffleboard.ShuffleboardTab;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
-import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.LogFileUtil;
 import org.littletonrobotics.junction.LoggedRobot;
+import org.littletonrobotics.junction.Logger;
 import org.littletonrobotics.junction.networktables.NT4Publisher;
 import org.littletonrobotics.junction.wpilog.WPILOGReader;
 import org.littletonrobotics.junction.wpilog.WPILOGWriter;
@@ -31,8 +30,8 @@ import org.littletonrobotics.junction.wpilog.WPILOGWriter;
  * - Heartbeat once per second from robotPeriodic() with current mode, DS/FMS attached, battery
  *   voltage, and RIO User Button state. No blocking sleeps; uses WPILib timers.
  * - Mode transition logging on each *Init(): prints ">>> Mode changed to: <Mode>".
- * - Dashboard outputs every loop to SmartDashboard (Robot/* keys) and a Shuffleboard "Robot" tab.
- * - NetworkTables is flushed once in robotInit() after widget setup so the tab appears quickly.
+ * - Dashboard outputs every loop to SmartDashboard (Robot/* keys).
+ * - Serves deploy directory for remote layout downloads (Elastic, etc.).
  */
 public class Robot extends LoggedRobot {
   // --- Heartbeat/state ---
@@ -41,20 +40,12 @@ public class Robot extends LoggedRobot {
   private int m_heartbeatCount = 0; // Increments once per second
 
   // --- Subsystems ---
-  private final TestSubsystem testSubsystem = new TestSubsystem();
+  private RobotContainer robotContainer;
   
   // --- Disabled-only HTTP log server ---
-  private static final int LOG_SERVER_PORT = 5800;
+  private static final int LOG_SERVER_PORT = 5801; // Keep 5800 free for deploy web server
   private LogServer m_logServer;
   private Thread m_logServerThread;
-
-  // --- Shuffleboard entries on the "Robot" tab ---
-  private GenericEntry m_modeEntry;
-  private GenericEntry m_heartbeatEntry;
-  private GenericEntry m_dsEntry;
-  private GenericEntry m_fmsEntry;
-  private GenericEntry m_voltsEntry;
-  private GenericEntry m_userButtonEntry;
 
   public Robot() {
     // AdvantageKit logger setup
@@ -99,28 +90,23 @@ public class Robot extends LoggedRobot {
     Logger.start();
   }
 
-  /** Called when the robot first starts. Sets up dashboard widgets and flushes NT once. */
+  /** Called when the robot first starts. */
   @Override
   public void robotInit() {
-    // Initialize Shuffleboard widgets on a dedicated "Robot" tab.
-    ShuffleboardTab tab = Shuffleboard.getTab("Robot");
-    m_modeEntry = tab.add("Mode", m_currentMode).getEntry();
-    m_heartbeatEntry = tab.add("Heartbeat", m_heartbeatCount).getEntry();
-    m_dsEntry = tab.add("DSConnected", false).getEntry();
-    m_fmsEntry = tab.add("FMSAttached", false).getEntry();
-    m_voltsEntry = tab.add("BatteryVolts", 0.0).getEntry();
-    m_userButtonEntry = tab.add("UserButton", false).getEntry();
+    robotContainer = new RobotContainer();
 
-    // Flush once so the tab and widgets appear quickly in Shuffleboard.
-    NetworkTableInstance.getDefault().flush();
+    // Serve deploy directory for remote layout downloading (Elastic) on port 5800.
+    WebServer.start(5800, Filesystem.getDeployDirectory().getAbsolutePath());
   }
 
   /**
    * Runs every 20 ms in all modes. Performs heartbeat printing once per second and publishes
-   * status to SmartDashboard and Shuffleboard.
+   * status to SmartDashboard.
    */
   @Override
   public void robotPeriodic() {
+    CommandScheduler.getInstance().run();
+
     // Gather current status.
     boolean dsAttached = DriverStation.isDSAttached();
     boolean fmsAttached = DriverStation.isFMSAttached();
@@ -138,7 +124,7 @@ public class Robot extends LoggedRobot {
           m_heartbeatCount, m_currentMode, dsAttached, fmsAttached, batteryVolts, userButton);
     }
 
-    // SmartDashboard (Robot/* keys) — updated every loop.
+    // SmartDashboard (Robot/* keys) updated every loop.
     SmartDashboard.putString("Robot/Mode", m_currentMode);
     SmartDashboard.putNumber("Robot/Heartbeat", m_heartbeatCount);
     SmartDashboard.putBoolean("Robot/DSConnected", dsAttached);
@@ -146,16 +132,7 @@ public class Robot extends LoggedRobot {
     SmartDashboard.putNumber("Robot/BatteryVolts", batteryVolts);
     SmartDashboard.putBoolean("Robot/UserButton", userButton);
 
-    // Shuffleboard entries — mirror the same values every loop.
-    if (m_modeEntry != null) m_modeEntry.setString(m_currentMode);
-    if (m_heartbeatEntry != null) m_heartbeatEntry.setDouble(m_heartbeatCount);
-    if (m_dsEntry != null) m_dsEntry.setBoolean(dsAttached);
-    if (m_fmsEntry != null) m_fmsEntry.setBoolean(fmsAttached);
-    if (m_voltsEntry != null) m_voltsEntry.setDouble(batteryVolts);
-    if (m_userButtonEntry != null) m_userButtonEntry.setBoolean(userButton);
-
-    // Update the TestSubsystem (CANcoder readout) alongside the heartbeat.
-    testSubsystem.periodic();
+    CANHealthMonitor.getInstance().periodic();
   }
 
   // --- Mode transitions: log and update current mode label ---
