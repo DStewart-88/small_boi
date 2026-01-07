@@ -1,7 +1,6 @@
 package frc.robot.subsystems;
 
 import com.ctre.phoenix6.BaseStatusSignal;
-import com.ctre.phoenix6.StatusCode;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
 import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.hardware.CANcoder;
@@ -30,7 +29,6 @@ public class Tray extends SubsystemBase {
   private final CANcoder trayCancoder = new CANcoder(TrayConstants.kCancoderId);
   private final PositionVoltage positionRequest = new PositionVoltage(0).withSlot(0);
 
-  private StatusCode lastCanStatus = StatusCode.OK;
   private double lastCommandedTargetRotations = 0.0;
 
   public Tray() {
@@ -83,9 +81,8 @@ public class Tray extends SubsystemBase {
     var supplyVoltage = trayMotor.getSupplyVoltage();
     var absPos = trayCancoder.getAbsolutePosition();
 
-    // Capture CAN refresh status to report health/connectivity.
-    lastCanStatus =
-        BaseStatusSignal.refreshAll(rotorPos, rotorVel, supplyCurrent, supplyVoltage, absPos);
+    // Refresh all signals.
+    BaseStatusSignal.refreshAll(rotorPos, rotorVel, supplyCurrent, supplyVoltage, absPos);
 
     // Read values (rotations and rotations/sec) as doubles.
     double rotorRotations = rotorPos.getValueAsDouble();
@@ -100,9 +97,9 @@ public class Tray extends SubsystemBase {
 
     // Publish CAN health for the tray motor and CANcoder.
     CANHealthMonitor.getInstance()
-        .updateStatus("Tray/Motor", rotorPos.getStatus().isOK());
+        .updateStatus("Tray/Motor", trayMotor.isConnected());
     CANHealthMonitor.getInstance()
-        .updateStatus("Tray/CANcoder", absPos.getStatus().isOK());
+        .updateStatus("Tray/CANcoder", trayCancoder.isConnected());
 
     // SmartDashboard paths
     SmartDashboard.putNumber("Tray/MotorRotations", rotorRotations);
@@ -112,8 +109,7 @@ public class Tray extends SubsystemBase {
     SmartDashboard.putNumber("Tray/SupplyCurrentAmps", supplyCurrentAmps);
     SmartDashboard.putNumber("Tray/SupplyVoltageVolts", supplyVoltageVolts);
     SmartDashboard.putNumber("Tray/PowerWatts", powerWatts);
-    SmartDashboard.putString("Tray/CANStatus", lastCanStatus.toString());
-    SmartDashboard.putBoolean("Tray/CANOK", lastCanStatus == StatusCode.OK);
+    SmartDashboard.putBoolean("Tray/CANOK", trayMotor.isConnected() && trayCancoder.isConnected());
 
     // AdvantageKit outputs (recorded every cycle)
     Logger.recordOutput("Tray/MotorRotations", rotorRotations);
@@ -123,7 +119,7 @@ public class Tray extends SubsystemBase {
     Logger.recordOutput("Tray/SupplyCurrentAmps", supplyCurrentAmps);
     Logger.recordOutput("Tray/SupplyVoltageVolts", supplyVoltageVolts);
     Logger.recordOutput("Tray/PowerWatts", powerWatts);
-    Logger.recordOutput("Tray/CANOK", lastCanStatus == StatusCode.OK);
+    Logger.recordOutput("Tray/CANOK", trayMotor.isConnected() && trayCancoder.isConnected());
   }
 
   /**
@@ -157,13 +153,8 @@ public class Tray extends SubsystemBase {
     return getAbsoluteTrayPosition();
   }
 
-  @AutoLogOutput(key = "Tray/CANStatus")
-  public String getCANStatus() {
-    return lastCanStatus != null ? lastCanStatus.toString() : "Unknown";
-  }
-
   @AutoLogOutput(key = "Tray/CANOK")
   public boolean isCANOK() {
-    return lastCanStatus == StatusCode.OK;
+    return trayMotor.isConnected() && trayCancoder.isConnected();
   }
 }
