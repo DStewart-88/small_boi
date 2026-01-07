@@ -81,7 +81,7 @@ public class Tray extends SubsystemBase {
     var supplyVoltage = trayMotor.getSupplyVoltage();
     var absPos = trayCancoder.getAbsolutePosition();
 
-    // Refresh all signals.
+    // Refresh signals to get latest values.
     BaseStatusSignal.refreshAll(rotorPos, rotorVel, supplyCurrent, supplyVoltage, absPos);
 
     // Read values (rotations and rotations/sec) as doubles.
@@ -109,7 +109,13 @@ public class Tray extends SubsystemBase {
     SmartDashboard.putNumber("Tray/SupplyCurrentAmps", supplyCurrentAmps);
     SmartDashboard.putNumber("Tray/SupplyVoltageVolts", supplyVoltageVolts);
     SmartDashboard.putNumber("Tray/PowerWatts", powerWatts);
-    SmartDashboard.putBoolean("Tray/CANOK", trayMotor.isConnected() && trayCancoder.isConnected());
+    boolean motorConnected = trayMotor.isConnected();
+    boolean cancoderConnected = trayCancoder.isConnected();
+    SmartDashboard.putString("Tray/CANStatus", 
+        String.format("Motor: %s, CANcoder: %s", 
+            motorConnected ? "Connected" : "Disconnected",
+            cancoderConnected ? "Connected" : "Disconnected"));
+    SmartDashboard.putBoolean("Tray/CANOK", motorConnected && cancoderConnected);
 
     // AdvantageKit outputs (recorded every cycle)
     Logger.recordOutput("Tray/MotorRotations", rotorRotations);
@@ -119,7 +125,7 @@ public class Tray extends SubsystemBase {
     Logger.recordOutput("Tray/SupplyCurrentAmps", supplyCurrentAmps);
     Logger.recordOutput("Tray/SupplyVoltageVolts", supplyVoltageVolts);
     Logger.recordOutput("Tray/PowerWatts", powerWatts);
-    Logger.recordOutput("Tray/CANOK", trayMotor.isConnected() && trayCancoder.isConnected());
+    Logger.recordOutput("Tray/CANOK", motorConnected && cancoderConnected);
   }
 
   /**
@@ -151,6 +157,15 @@ public class Tray extends SubsystemBase {
   @AutoLogOutput(key = "Tray/AbsDegrees")
   public double getAbsDegrees() {
     return getAbsoluteTrayPosition();
+  }
+
+  @AutoLogOutput(key = "Tray/CANStatus")
+  public String getCANStatus() {
+    boolean motorConnected = trayMotor.isConnected();
+    boolean cancoderConnected = trayCancoder.isConnected();
+    return String.format("Motor: %s, CANcoder: %s", 
+        motorConnected ? "Connected" : "Disconnected",
+        cancoderConnected ? "Connected" : "Disconnected");
   }
 
   @AutoLogOutput(key = "Tray/CANOK")
