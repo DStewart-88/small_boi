@@ -37,6 +37,9 @@ public class Tray extends SubsystemBase {
   // --- Preferences ---
   private static final String PREF_DUTY_CYCLE = "Tray/DutyCycle";
   private static final double DEFAULT_DUTY_CYCLE = 0.05; // 5% default (0.05 = 5%)
+  
+  // --- Motor State Tracking ---
+  private String falconState = "stopped";
 
   public Tray() {
     System.out.println("Tray subsystem initialized.");
@@ -130,6 +133,9 @@ public class Tray extends SubsystemBase {
     // Display current duty cycle preference value
     double dutyCycle = Preferences.getDouble(PREF_DUTY_CYCLE, DEFAULT_DUTY_CYCLE);
     SmartDashboard.putNumber("Tray/DutyCyclePercent", dutyCycle * 100.0); // Display as percentage
+    
+    // Log Falcon motor state
+    SmartDashboard.putString("Tray/Falcon State", falconState);
 
     // AdvantageKit outputs (recorded every cycle)
     Logger.recordOutput("Tray/MotorRotations", rotorRotations);
@@ -140,6 +146,7 @@ public class Tray extends SubsystemBase {
     Logger.recordOutput("Tray/SupplyVoltageVolts", supplyVoltageVolts);
     Logger.recordOutput("Tray/PowerWatts", powerWatts);
     Logger.recordOutput("Tray/CANOK", motorConnected && cancoderConnected);
+    Logger.recordOutput("Tray/Falcon State", falconState);
   }
 
   /**
@@ -161,6 +168,7 @@ public class Tray extends SubsystemBase {
    * allowing real-time adjustment from the dashboard.
    */
   public void powerMotorAtDutyCycle() {
+    falconState = "forward duty cycle";
     double dutyCycle = Preferences.getDouble(PREF_DUTY_CYCLE, DEFAULT_DUTY_CYCLE);
     trayMotor.setControl(dutyCycleRequest.withOutput(dutyCycle));
   }
@@ -169,6 +177,7 @@ public class Tray extends SubsystemBase {
    * Stops the motor by setting duty cycle to zero.
    */
   public void stopMotor() {
+    falconState = "stopped";
     trayMotor.setControl(dutyCycleRequest.withOutput(0.0));
   }
 
