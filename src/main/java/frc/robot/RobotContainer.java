@@ -1,6 +1,7 @@
 package frc.robot;
 
 import edu.wpi.first.wpilibj2.command.InstantCommand;
+import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
 import frc.robot.subsystems.Tray;
 
@@ -21,6 +22,12 @@ public class RobotContainer {
         .a()
         .debounce(kDebounceSeconds)
         .onTrue(new InstantCommand(tray::rotateMotorTwoRotations, tray));
+    
+    // Right trigger powers motor at duty cycle while held.
+    driverController
+        .rightTrigger()
+        .whileTrue(new RunCommand(tray::powerMotorAtDutyCycle, tray))
+        .onFalse(new InstantCommand(tray::stopMotor, tray));
   }
 
   public Tray getTray() {

@@ -2,11 +2,13 @@ package frc.robot.subsystems;
 
 import com.ctre.phoenix6.BaseStatusSignal;
 import com.ctre.phoenix6.configs.TalonFXConfiguration;
+import com.ctre.phoenix6.controls.DutyCycleOut;
 import com.ctre.phoenix6.controls.PositionVoltage;
 import com.ctre.phoenix6.hardware.CANcoder;
 import com.ctre.phoenix6.hardware.TalonFX;
 import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
+import edu.wpi.first.wpilibj.Preferences;
 import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.SubsystemBase;
 import frc.robot.Constants.TrayConstants;
@@ -28,12 +30,20 @@ public class Tray extends SubsystemBase {
   private final TalonFX trayMotor = new TalonFX(TrayConstants.kMotorId);
   private final CANcoder trayCancoder = new CANcoder(TrayConstants.kCancoderId);
   private final PositionVoltage positionRequest = new PositionVoltage(0).withSlot(0);
+  private final DutyCycleOut dutyCycleRequest = new DutyCycleOut(0);
 
   private double lastCommandedTargetRotations = 0.0;
+  
+  // --- Preferences ---
+  private static final String PREF_DUTY_CYCLE = "Tray/DutyCycle";
+  private static final double DEFAULT_DUTY_CYCLE = 0.05; // 5% default (0.05 = 5%)
 
   public Tray() {
     System.out.println("Tray subsystem initialized.");
     configureMotor();
+    
+    // Initialize preference with default value if not already set
+    Preferences.initDouble(PREF_DUTY_CYCLE, DEFAULT_DUTY_CYCLE);
 
     // Refresh the signals we care about at 50 Hz so logs/dashboard track motion cleanly.
     BaseStatusSignal.setUpdateFrequencyForAll(
@@ -116,6 +126,10 @@ public class Tray extends SubsystemBase {
             motorConnected ? "Connected" : "Disconnected",
             cancoderConnected ? "Connected" : "Disconnected"));
     SmartDashboard.putBoolean("Tray/CANOK", motorConnected && cancoderConnected);
+    
+    // Display current duty cycle preference value
+    double dutyCycle = Preferences.getDouble(PREF_DUTY_CYCLE, DEFAULT_DUTY_CYCLE);
+    SmartDashboard.putNumber("Tray/DutyCyclePercent", dutyCycle * 100.0); // Display as percentage
 
     // AdvantageKit outputs (recorded every cycle)
     Logger.recordOutput("Tray/MotorRotations", rotorRotations);
@@ -139,6 +153,23 @@ public class Tray extends SubsystemBase {
 
     // Closed-loop position request; holds after it reaches the target.
     trayMotor.setControl(positionRequest.withPosition(lastCommandedTargetRotations));
+  }
+
+  /**
+   * Powers the Falcon motor at the duty cycle set in Preferences.
+   * The duty cycle is read from Preferences each time this method is called,
+   * allowing real-time adjustment from the dashboard.
+   */
+  public void powerMotorAtDutyCycle() {
+    double dutyCycle = Preferences.getDouble(PREF_DUTY_CYCLE, DEFAULT_DUTY_CYCLE);
+    trayMotor.setControl(dutyCycleRequest.withOutput(dutyCycle));
+  }
+
+  /**
+   * Stops the motor by setting duty cycle to zero.
+   */
+  public void stopMotor() {
+    trayMotor.setControl(dutyCycleRequest.withOutput(0.0));
   }
 
   /** Absolute CANcoder position in degrees (0-360 wrap). */
