@@ -1,8 +1,10 @@
 package frc.robot;
 
+import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.InstantCommand;
 import edu.wpi.first.wpilibj2.command.RunCommand;
 import edu.wpi.first.wpilibj2.command.button.CommandXboxController;
+import edu.wpi.first.wpilibj2.command.button.Trigger;
 import frc.robot.subsystems.Tray;
 
 /** Wires driver controls to subsystems/commands. */
@@ -13,6 +15,9 @@ public class RobotContainer {
   private final CommandXboxController driverController = new CommandXboxController(0);
 
   public RobotContainer() {
+    // Initialize dashboard button for testing powerMotorAtDutyCycle
+    SmartDashboard.putBoolean("Tray/TestPowerMotor", false);
+    
     configureBindings();
   }
 
@@ -23,9 +28,8 @@ public class RobotContainer {
         .debounce(kDebounceSeconds)
         .onTrue(new InstantCommand(tray::rotateMotorTwoRotations, tray));
     
-    // Right trigger powers motor at duty cycle while held.
-    driverController
-        .rightTrigger()
+    // Dashboard momentary button for testing powerMotorAtDutyCycle
+    new Trigger(() -> SmartDashboard.getBoolean("Tray/TestPowerMotor", false))
         .whileTrue(new RunCommand(tray::powerMotorAtDutyCycle, tray))
         .onFalse(new InstantCommand(tray::stopMotor, tray));
   }
