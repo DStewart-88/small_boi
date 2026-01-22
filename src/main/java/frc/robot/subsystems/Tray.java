@@ -121,7 +121,7 @@ public class Tray extends SubsystemBase {
     SmartDashboard.putNumber("Tray/TargetRotations", lastCommandedTargetRotations);
     SmartDashboard.putNumber("Tray/SupplyCurrentAmps", supplyCurrentAmps);
     SmartDashboard.putNumber("Tray/SupplyVoltageVolts", supplyVoltageVolts);
-    SmartDashboard.putNumber("Tray/PowerWatts", powerWatts);
+    SmartDashboard.putNumber("Tray/PowerWatts", Math.round(powerWatts * 100.0) / 100.0);
     boolean motorConnected = trayMotor.isConnected();
     boolean cancoderConnected = trayCancoder.isConnected();
     SmartDashboard.putString("Tray/CANStatus", 
