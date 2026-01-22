@@ -32,6 +32,12 @@ public class RobotContainer {
     new Trigger(() -> SmartDashboard.getBoolean("Tray/TestPowerMotor", false))
         .whileTrue(new RunCommand(tray::powerMotorAtDutyCycle, tray))
         .onFalse(new InstantCommand(tray::stopMotor, tray));
+    
+    // Right trigger powers motor at duty cycle while held.
+    driverController
+        .rightTrigger()
+        .whileTrue(new RunCommand(tray::powerMotorAtDutyCycle, tray))
+        .onFalse(new InstantCommand(tray::stopMotor, tray));
   }
 
   public Tray getTray() {
